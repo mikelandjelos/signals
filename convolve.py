@@ -196,7 +196,18 @@ def closed_form(x_expr, h_expr, steps=None):
         out[-1] = (plo, hi, y)           # previous single sample fits this formula
         continue
     out.append((lo, hi, y))
-  return [(lo, hi, nicer(y)) for lo, hi, y in out if y != 0]
+  # a formula can hit exactly 0 at a finite end (cancelling steps): shrink to the real support
+  trimmed = []
+  for lo, hi, y in out:
+    if y == 0:
+      continue
+    while lo.is_finite and lo <= hi and sp.simplify(y.subs(n, lo)) == 0:
+      lo += 1
+    while hi.is_finite and lo <= hi and sp.simplify(y.subs(n, hi)) == 0:
+      hi -= 1
+    if lo <= hi and y != 0:
+      trimmed.append((lo, hi, nicer(y)))
+  return trimmed
 
 
 def interval_text(lo, hi):
